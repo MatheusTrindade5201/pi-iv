@@ -55,13 +55,19 @@ Pré-requisitos: [uv](https://docs.astral.sh/uv/getting-started/installation/) e
 # instalar uv (se necessário)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-cd api
-uv sync                              # instala Python 3.12 (se preciso) e as dependências em .venv
+# na raiz do repositório
+docker compose up -d db              # PostgreSQL de desenvolvimento em localhost:5433
 
-docker compose up -d db              # sobe o PostgreSQL de desenvolvimento
-uv run alembic upgrade head          # aplica as migrations
+cd api
+cp .env.example .env
+uv sync                              # instala Python 3.12 (se preciso) e as dependências em .venv
+uv run alembic upgrade head          # aplica as migrations (a partir da etapa 2)
 uv run fastapi dev app/main.py       # API em http://localhost:8000 (docs em /docs)
 ```
+
+O Postgres do projeto usa a porta **5433** no host para não conflitar com outro Postgres local. Para mudar, defina `DB_PORT` ao subir o compose (`DB_PORT=5434 docker compose up -d db`) e ajuste `DATABASE_URL` no `api/.env`.
+
+Health check: `curl localhost:8000/api/v1/health` → `{"status":"ok"}`.
 
 Adicionando dependências:
 

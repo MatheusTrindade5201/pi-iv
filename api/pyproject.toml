@@ -1,0 +1,36 @@
+[project]
+name = "pi-iv-api"
+version = "0.1.0"
+description = "API de registro de expedientes para motociclistas"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "pydantic-settings>=2.15.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "unit: testes unitários (sem banco, sem rede)",
+    "integration: testes de integração (API e banco)",
+]
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
