@@ -1,13 +1,24 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.core.config import Settings, get_settings
+from app.core.db import create_db_engine, create_session_factory
 from app.routers import health
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
+    engine = create_db_engine(settings.database_url)
 
-    app = FastAPI(title=settings.app_name, version="0.1.0")
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        engine.dispose()
+
+    app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+    app.state.session_factory = create_session_factory(engine)
     app.include_router(health.router, prefix=settings.api_prefix)
 
     return app

@@ -4,11 +4,11 @@ from fastapi.testclient import TestClient
 pytestmark = pytest.mark.integration
 
 
-def test_health_returns_ok(client: TestClient) -> None:
+def test_health_returns_ok_with_database(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "database": "ok"}
 
 
 def test_unknown_route_returns_404(client: TestClient) -> None:

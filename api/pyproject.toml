@@ -4,8 +4,11 @@ version = "0.1.0"
 description = "API de registro de expedientes para motociclistas"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi[standard]>=0.141.1",
+    "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.1.1",
 ]
 
 [dependency-groups]
@@ -13,6 +16,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.9",
+    "testcontainers[postgres]>=4.15.0",
 ]
 
 [tool.ruff]
@@ -21,6 +25,9 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "N"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

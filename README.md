@@ -61,13 +61,22 @@ docker compose up -d db              # PostgreSQL de desenvolvimento em localhos
 cd api
 cp .env.example .env
 uv sync                              # instala Python 3.12 (se preciso) e as dependências em .venv
-uv run alembic upgrade head          # aplica as migrations (a partir da etapa 2)
+uv run alembic upgrade head          # cria as tabelas e o seed de combustíveis
 uv run fastapi dev app/main.py       # API em http://localhost:8000 (docs em /docs)
 ```
 
 O Postgres do projeto usa a porta **5433** no host para não conflitar com outro Postgres local. Para mudar, defina `DB_PORT` ao subir o compose (`DB_PORT=5434 docker compose up -d db`) e ajuste `DATABASE_URL` no `api/.env`.
 
-Health check: `curl localhost:8000/api/v1/health` → `{"status":"ok"}`.
+Health check: `curl localhost:8000/api/v1/health` → `{"status":"ok","database":"ok"}` (ou **503** se o banco estiver fora).
+
+Migrations (Alembic, dentro de `api/`):
+
+```bash
+uv run alembic upgrade head                              # aplica todas
+uv run alembic downgrade -1                              # desfaz a última
+uv run alembic revision --autogenerate -m "descricao"    # gera nova a partir dos modelos
+uv run alembic check                                     # falha se modelos e migrations divergirem
+```
 
 Adicionando dependências:
 
@@ -79,10 +88,12 @@ uv add --dev <pacote>    # dependência de desenvolvimento (pytest, ruff, ...)
 ## Testes
 
 ```bash
-uv run pytest                        # unitários + integração (sobe Postgres via testcontainers)
-uv run pytest tests/unit             # apenas unitários
-uv run pytest --cov=app --cov-report=term-missing
+uv run pytest                        # unitários + integração
+uv run pytest -m unit                # apenas unitários (não precisa de Docker)
+uv run pytest -m integration         # apenas integração
 ```
+
+Os testes de integração sobem um **PostgreSQL real** em container (testcontainers), aplicam as migrations uma vez por sessão e isolam cada teste numa transação desfeita ao final — **o Docker precisa estar rodando**. A cobertura é medida automaticamente em toda execução.
 
 Meta de cobertura: **≥ 90%**.
 

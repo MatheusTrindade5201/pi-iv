@@ -53,7 +53,13 @@ Convenções:
 
 ### fuel
 
-Tabela de domínio, populada por seed na migration: **Gasolina**, **Etanol**, **Flex**.
+Tabela de domínio, populada por seed na migration inicial com IDs fixos (constantes em `app/models/fuel.py`):
+
+| Constante | id | name |
+|---|---|---|
+| `GASOLINE_ID` | `00000000-0000-4000-8000-000000000001` | Gasolina |
+| `ETHANOL_ID` | `00000000-0000-4000-8000-000000000002` | Etanol |
+| `FLEX_ID` | `00000000-0000-4000-8000-000000000003` | Flex |
 
 | Coluna | Tipo | Restrições |
 |---|---|---|
@@ -304,7 +310,7 @@ Para os avisos "GPS ativo – último ponto há 4s" e "GPS ficou inativo por 6 m
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/health` | `{ "status": "ok" }` — verifica também a conexão com o banco |
+| GET | `/health` | Executa `SELECT 1` no banco: **200** `{ "status": "ok", "database": "ok" }` ou **503** `{ "status": "error", "database": "unavailable" }` |
 
 ### 5.2 Autenticação e usuário
 
