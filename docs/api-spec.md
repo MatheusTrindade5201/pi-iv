@@ -165,7 +165,8 @@ Enum `shift_status`: `in_progress`, `finished`.
 - Não é permitido cadastrar preço para "Flex" → **422**.
 
 ### Veículo
-- `fuel_id` deve existir; `declared_kml > 0`; `year` entre 1950 e ano atual + 1; `displacement_cc > 0`.
+- `fuel_id` deve existir (Gasolina, Etanol ou Flex); `declared_kml > 0` com até 2 casas e < 1000; `year` entre 1950 e ano atual + 1; `displacement_cc` entre 1 e 3000.
+- Alterar `declared_kml` não muda expedientes já iniciados (eles guardam snapshot em `kml_used`).
 - Excluir veículo com expedientes associados → **409**.
 
 ### Expediente
@@ -397,6 +398,38 @@ Erros:
 ```json
 { "model": "Honda CG 160", "fuel_id": "…", "declared_kml": "32", "displacement_cc": 160, "year": 2022 }
 ```
+(`displacement_cc` e `year` opcionais)
+
+→ `201`
+```json
+{
+  "id": "…",
+  "model": "Honda CG 160",
+  "fuel_id": "…",
+  "fuel_name": "Gasolina",
+  "declared_kml": "32.00",
+  "displacement_cc": 160,
+  "year": 2022,
+  "created_at": "…"
+}
+```
+
+`GET /vehicles` → lista nesse formato, em ordem de cadastro.
+
+`PATCH /vehicles/{id}` — atualização parcial: só os campos enviados mudam. `null` em `displacement_cc` ou `year` limpa o campo; `null` em `model`, `fuel_id` ou `declared_kml` → **422**.
+```json
+{ "declared_kml": "30.5", "year": null }
+```
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| Veículo inexistente ou de outro usuário | 404 | `Veículo não encontrado` |
+| `fuel_id` inexistente | 422 | `Combustível não encontrado` |
+| Campos fora das regras (§3) | 422 | erros de validação |
+| Excluir veículo com expedientes | 409 | `Veículo possui expedientes registrados` |
+| Sem token | 401 | `Não autenticado` |
 
 ### 5.5 Expedientes
 

@@ -12,9 +12,11 @@ from app.models import User
 from app.repositories.fuel_price_repository import FuelPriceRepository
 from app.repositories.fuel_repository import FuelRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.vehicle_repository import VehicleRepository
 from app.services.auth_service import AuthService
 from app.services.fuel_service import FuelService
 from app.services.user_service import UserService
+from app.services.vehicle_service import VehicleService
 
 NOT_AUTHENTICATED = "Não autenticado"
 
@@ -47,6 +49,10 @@ def get_fuel_service(db: DbSession) -> FuelService:
     return FuelService(FuelRepository(db), FuelPriceRepository(db))
 
 
+def get_vehicle_service(db: DbSession) -> VehicleService:
+    return VehicleService(VehicleRepository(db), FuelRepository(db))
+
+
 def get_current_user(
     repository: UserRepositoryDep,
     settings: AppSettings,
@@ -69,3 +75,4 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 FuelServiceDep = Annotated[FuelService, Depends(get_fuel_service)]
+VehicleServiceDep = Annotated[VehicleService, Depends(get_vehicle_service)]
