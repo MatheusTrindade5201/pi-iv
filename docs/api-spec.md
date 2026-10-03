@@ -603,9 +603,19 @@ Erros:
 | GET | `/analytics/daily?from=&to=&tz=` | Totais por dia (tela Histórico: "Lucro do dia") |
 | GET | `/analytics/summary?from=&to=&tz=` | Totais e indicadores do período |
 
-`from`/`to` são datas locais (`YYYY-MM-DD`, inclusivas).
+Parâmetros (iguais nas duas rotas):
 
-`GET /analytics/daily`
+| Parâmetro | Padrão | Regra |
+|---|---|---|
+| `to` | hoje no fuso `tz` | data local `YYYY-MM-DD`, inclusiva |
+| `from` | `to` − 29 dias (30 dias no total) | data local, inclusiva, `from <= to` |
+| `tz` | `America/Sao_Paulo` | fuso IANA válido |
+
+- Período máximo: 366 dias.
+- Só entram expedientes **encerrados**; o dia é a data local de `started_at` (§4.8).
+- A agregação é feita no banco (`GROUP BY date(timezone(tz, started_at))`) a partir das métricas gravadas no `finish`.
+
+`GET /analytics/daily` — só dias com expediente, do **mais recente para o mais antigo** (ordem da tela Histórico). O app formata "Ontem" / "18/09/2026" a partir de `date`.
 ```json
 [
   {
@@ -621,7 +631,36 @@ Erros:
 ]
 ```
 
-`GET /analytics/summary` — mesmos campos somados no período, mais `days_worked`, `profit_per_hour`, `profit_per_km` e `avg_profit_per_day`.
+`GET /analytics/summary`
+```json
+{
+  "from": "2026-09-01",
+  "to": "2026-09-30",
+  "days_worked": 2,
+  "shifts_count": 2,
+  "earnings_total": "490.00",
+  "fuel_cost": "115.20",
+  "profit": "374.80",
+  "distance_km": "156.400",
+  "duration_minutes": 480,
+  "idle_minutes": 60,
+  "profit_per_hour": "46.85",
+  "profit_per_km": "2.40",
+  "avg_profit_per_day": "187.40"
+}
+```
+
+- `from`/`to` na resposta trazem o período efetivamente usado (útil quando foram omitidos).
+- `days_worked` conta dias locais distintos; dois expedientes no mesmo dia contam 1.
+- `profit_per_hour = profit / (duration_minutes / 60)`, `profit_per_km = profit / distance_km` e `avg_profit_per_day = profit / days_worked` são calculados a partir dos **totais** (não média das médias), com `ROUND_HALF_UP`; `null` quando o divisor é 0.
+- Período sem expedientes → `daily = []` e `summary` com totais zerados e taxas `null`.
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| `from > to`, período > 366 dias, `tz` inválido | 422 | erros de validação |
+| Sem token | 401 | `Não autenticado` |
 
 ---
 

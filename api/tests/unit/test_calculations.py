@@ -9,6 +9,8 @@ from app.services.calculations import (
     filter_points,
     find_gps_gaps,
     haversine_m,
+    per_hour,
+    per_km,
     summarize_shift,
     summarize_track,
 )
@@ -161,3 +163,27 @@ def test_filter_points_discards_point_with_same_timestamp() -> None:
     first = point(0)
 
     assert filter_points([first, point(0, east_m=50)], PARAMS) == [first]
+
+
+@pytest.mark.parametrize(
+    ("value", "minutes", "expected"),
+    [
+        (Decimal("187.40"), 240, Decimal("46.85")),
+        (Decimal("0.25"), 120, Decimal("0.13")),
+        (Decimal("-10.00"), 60, Decimal("-10.00")),
+        (Decimal("10.00"), 0, None),
+    ],
+)
+def test_per_hour(value: Decimal, minutes: int, expected: Decimal | None) -> None:
+    assert per_hour(value, minutes) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "km", "expected"),
+    [
+        (Decimal("187.40"), Decimal("78.2"), Decimal("2.40")),
+        (Decimal("10.00"), Decimal("0"), None),
+    ],
+)
+def test_per_km(value: Decimal, km: Decimal, expected: Decimal | None) -> None:
+    assert per_km(value, km) == expected

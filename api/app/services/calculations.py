@@ -130,9 +130,17 @@ def summarize_shift(
         distance_km=distance_km.quantize(KILOMETERS, rounding=ROUND_HALF_UP),
         duration_minutes=duration_minutes,
         idle_minutes=round(track.idle_seconds / 60),
-        profit_per_hour=_money(profit * 60 / duration_minutes) if duration_minutes else None,
-        profit_per_km=_money(profit / distance_km) if distance_km else None,
+        profit_per_hour=per_hour(profit, duration_minutes),
+        profit_per_km=per_km(profit, distance_km),
     )
+
+
+def per_hour(value: Decimal, minutes: int) -> Decimal | None:
+    return _money(value * 60 / minutes) if minutes else None
+
+
+def per_km(value: Decimal, distance_km: Decimal) -> Decimal | None:
+    return _money(value / distance_km) if distance_km else None
 
 
 def _speed_kmh(a: GpsPoint, b: GpsPoint) -> float:

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.routers import (
+    analytics,
     auth,
     earnings,
     fuel_prices,
@@ -22,6 +23,7 @@ ROUTERS = (
     shifts.router,
     earnings.router,
     track_points.router,
+    analytics.router,
 )
 
 

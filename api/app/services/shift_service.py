@@ -1,8 +1,7 @@
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from datetime import UTC, date, datetime
 
 from sqlalchemy.exc import IntegrityError
 
@@ -22,6 +21,7 @@ from app.services.calculations import (
     find_gps_gaps,
     summarize_shift,
 )
+from app.services.date_range import local_range_to_utc
 from app.services.shift_access import get_open_shift, get_user_shift
 
 VEHICLE_NOT_FOUND = "Veículo não encontrado"
@@ -134,9 +134,7 @@ class ShiftService:
         page: int,
         size: int,
     ) -> ShiftListResult:
-        zone = ZoneInfo(tz)
-        start = _local_midnight(date_from, zone) if date_from else None
-        end = _local_midnight(date_to + timedelta(days=1), zone) if date_to else None
+        start, end = local_range_to_utc(date_from, date_to, tz)
         items, total = self.shifts.list_for_user(user.id, start, end, (page - 1) * size, size)
         return ShiftListResult(items=items, total=total)
 
@@ -203,7 +201,3 @@ def stored_summary(shift: Shift) -> ShiftSummary:
         profit_per_hour=shift.profit_per_hour,
         profit_per_km=shift.profit_per_km,
     )
-
-
-def _local_midnight(day: date, zone: ZoneInfo) -> datetime:
-    return datetime.combine(day, time.min, tzinfo=zone).astimezone(UTC)

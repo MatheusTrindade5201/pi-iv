@@ -9,6 +9,7 @@ from app.core.db import DbSession
 from app.core.errors import UnauthorizedError
 from app.core.security import decode_access_token
 from app.models import User
+from app.repositories.analytics_repository import AnalyticsRepository
 from app.repositories.earning_repository import EarningRepository
 from app.repositories.fuel_price_repository import FuelPriceRepository
 from app.repositories.fuel_repository import FuelRepository
@@ -16,6 +17,7 @@ from app.repositories.shift_repository import ShiftRepository
 from app.repositories.track_point_repository import TrackPointRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.vehicle_repository import VehicleRepository
+from app.services.analytics_service import AnalyticsService
 from app.services.auth_service import AuthService
 from app.services.calculations import CalculationParams
 from app.services.earning_service import EarningService
@@ -91,6 +93,10 @@ def get_track_point_service(db: DbSession) -> TrackPointService:
     return TrackPointService(shifts=ShiftRepository(db), track_points=TrackPointRepository(db))
 
 
+def get_analytics_service(db: DbSession) -> AnalyticsService:
+    return AnalyticsService(AnalyticsRepository(db))
+
+
 def get_current_user(
     repository: UserRepositoryDep,
     settings: AppSettings,
@@ -117,3 +123,4 @@ VehicleServiceDep = Annotated[VehicleService, Depends(get_vehicle_service)]
 ShiftServiceDep = Annotated[ShiftService, Depends(get_shift_service)]
 EarningServiceDep = Annotated[EarningService, Depends(get_earning_service)]
 TrackPointServiceDep = Annotated[TrackPointService, Depends(get_track_point_service)]
+AnalyticsServiceDep = Annotated[AnalyticsService, Depends(get_analytics_service)]
