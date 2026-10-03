@@ -18,6 +18,7 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.vehicle_repository import VehicleRepository
 from app.services.auth_service import AuthService
 from app.services.calculations import CalculationParams
+from app.services.earning_service import EarningService
 from app.services.fuel_service import FuelService
 from app.services.shift_service import ShiftService
 from app.services.user_service import UserService
@@ -81,6 +82,10 @@ def get_shift_service(
     )
 
 
+def get_earning_service(db: DbSession) -> EarningService:
+    return EarningService(shifts=ShiftRepository(db), earnings=EarningRepository(db))
+
+
 def get_current_user(
     repository: UserRepositoryDep,
     settings: AppSettings,
@@ -105,3 +110,4 @@ UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 FuelServiceDep = Annotated[FuelService, Depends(get_fuel_service)]
 VehicleServiceDep = Annotated[VehicleService, Depends(get_vehicle_service)]
 ShiftServiceDep = Annotated[ShiftService, Depends(get_shift_service)]
+EarningServiceDep = Annotated[EarningService, Depends(get_earning_service)]

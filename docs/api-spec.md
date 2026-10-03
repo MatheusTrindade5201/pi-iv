@@ -532,6 +532,31 @@ Erros:
 ```
 (`earned_at` opcional — padrão: agora)
 
+→ `201 { "id": "…", "shift_id": "…", "amount": "20.00", "platform": "iFood", "earned_at": "…" }`
+
+- `amount`: maior que 0, até 2 casas decimais, no máximo 100.000.
+- `platform`: opcional, até 50 caracteres.
+- `earned_at`: precisa ter fuso (ex.: `Z` ou `-03:00`) e estar entre o início do expediente e agora (+1 min de tolerância de relógio).
+- `GET` lista em ordem de `earned_at`, inclusive de expedientes encerrados.
+
+**"Sobrescrever ganho atual"**: o app guarda o `id` do último ganho lançado e envia `PATCH /shifts/{id}/earnings/{earning_id}` com o novo valor. A edição é parcial: `null` em `platform` limpa o campo; `null` em `amount` ou `earned_at` → **422**.
+```json
+{ "amount": "12.00" }
+```
+
+Expediente encerrado é somente leitura: lançar, editar ou remover ganhos → **409**, e as métricas gravadas no `finish` não mudam.
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| Expediente inexistente ou de outro usuário | 404 | `Expediente não encontrado` |
+| Ganho inexistente ou de outro expediente | 404 | `Ganho não encontrado` |
+| Expediente encerrado (POST/PATCH/DELETE) | 409 | `Expediente já encerrado` |
+| `earned_at` fora do expediente | 422 | `Horário do ganho fora do expediente` |
+| Valor inválido, `earned_at` sem fuso | 422 | erros de validação |
+| Sem token | 401 | `Não autenticado` |
+
 ### 5.7 Pontos de GPS
 
 | Método | Rota | Descrição |
