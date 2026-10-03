@@ -35,6 +35,7 @@ def decode_access_token(token: str, settings: Settings) -> uuid.UUID:
         settings.jwt_secret,
         algorithms=[settings.jwt_algorithm],
         options={"require": ["sub", "exp"]},
+        leeway=settings.jwt_leeway_seconds,
     )
     try:
         return uuid.UUID(payload["sub"])

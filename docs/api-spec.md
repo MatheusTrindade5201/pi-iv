@@ -225,6 +225,9 @@ idle_seconds = Σ Δt_i     (segmentos SA)
 idle_minutes = round(idle_seconds / 60)
 ```
 
+- O intervalo entre `started_at` e o primeiro ponto **não** entra em `idle_seconds` (não há posição conhecida); ele aparece apenas como lacuna de GPS (§4.7).
+- Pontos com o mesmo `recorded_at` do último ponto válido são descartados.
+
 ### 4.5 Combustível
 
 **Em movimento** — o artigo usa a equação COPERT para carros de passeio (eq. 8). Como aqui o veículo é uma moto e o usuário informa o consumo médio, usamos o consumo declarado:
@@ -252,7 +255,7 @@ fuel_cost = (liters_moving + liters_idle) × price_per_liter_used
 ```
 earnings_total   = Σ earnings.amount
 profit           = earnings_total − fuel_cost
-duration_minutes = (ended_at ou agora) − started_at, em minutos
+duration_minutes = (ended_at ou agora) − started_at, em minutos inteiros (truncado)
 profit_per_hour  = profit / (duration_minutes / 60)    → null se duration_minutes = 0
 profit_per_km    = profit / distance_km                 → null se distance_km = 0
 ```
@@ -283,6 +286,7 @@ Para os avisos "GPS ativo – último ponto há 4s" e "GPS ficou inativo por 6 m
 | `IDLE_FUEL_ML_PER_S` | 0.04 | consumo em marcha lenta |
 | `DEFAULT_TZ` | America/Sao_Paulo | agregação por dia |
 | `JWT_SECRET`, `JWT_EXPIRES_MINUTES` | — / 1440 | autenticação |
+| `JWT_LEEWAY_SECONDS` | 30 | tolerância a diferença de relógio ao validar `iat`/`exp` |
 | `DATABASE_URL` | — | conexão PostgreSQL |
 
 ---
@@ -466,7 +470,7 @@ Resposta de `GET /shifts/current` (e de `finish`):
     "duration_minutes": 240,
     "idle_minutes": 35,
     "profit_per_hour": "46.85",
-    "profit_per_km": "2.39"
+    "profit_per_km": "2.40"
   },
   "gps": {
     "last_point_at": "2026-09-28T14:59:56Z",
@@ -474,6 +478,44 @@ Resposta de `GET /shifts/current` (e de `finish`):
   }
 }
 ```
+
+- Em andamento, `summary` é calculado até o momento da requisição. Encerrado, `summary` traz as métricas gravadas no `finish` (não mudam depois).
+- `gps` é calculado a partir de todos os pontos recebidos, inclusive os descartados pelos filtros.
+- `profit_per_km` usa `ROUND_HALF_UP`: 187,40 / 78,2 = 2,396 → **2,40** (o protótipo mostra 2,39 porque trunca).
+
+`GET /shifts` — parâmetros:
+
+| Parâmetro | Padrão | Regra |
+|---|---|---|
+| `from`, `to` | — | datas locais `YYYY-MM-DD`, inclusivas, filtram por `started_at`; `from <= to` |
+| `tz` | `America/Sao_Paulo` | fuso IANA válido |
+| `page` | 1 | ≥ 1 |
+| `size` | 20 | 1–100 |
+
+```json
+{
+  "items": [ { "id": "…", "status": "finished", "vehicle_id": "…", "fuel_id": "…", "started_at": "…", "ended_at": "…", "price_per_liter_used": "6.200", "kml_used": "32.00", "summary": { "…": "…" } } ],
+  "total": 42,
+  "page": 1,
+  "size": 20
+}
+```
+Itens não trazem `gps`; `summary` é `null` para expediente em andamento.
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| Veículo inexistente ou de outro usuário | 404 | `Veículo não encontrado` |
+| Moto Flex sem `fuel_id`, ou com `fuel_id` diferente de Gasolina/Etanol | 422 | `Informe o combustível abastecido (Gasolina ou Etanol) para moto Flex` |
+| Moto não-Flex com `fuel_id` diferente do cadastrado | 422 | `Combustível diferente do cadastrado no veículo` |
+| Já existe expediente em andamento | 409 | `Já existe um expediente em andamento` |
+| Sem preço vigente do combustível | 409 | `Cadastre o preço do combustível antes de iniciar` |
+| `GET /shifts/current` sem expediente em andamento | 404 | `Nenhum expediente em andamento` |
+| Expediente inexistente ou de outro usuário | 404 | `Expediente não encontrado` |
+| Encerrar expediente já encerrado | 409 | `Expediente já encerrado` |
+| Parâmetros de listagem inválidos | 422 | erros de validação |
+| Sem token | 401 | `Não autenticado` |
 
 ### 5.6 Ganhos
 

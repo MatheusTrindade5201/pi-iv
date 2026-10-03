@@ -9,12 +9,17 @@ from app.core.db import DbSession
 from app.core.errors import UnauthorizedError
 from app.core.security import decode_access_token
 from app.models import User
+from app.repositories.earning_repository import EarningRepository
 from app.repositories.fuel_price_repository import FuelPriceRepository
 from app.repositories.fuel_repository import FuelRepository
+from app.repositories.shift_repository import ShiftRepository
+from app.repositories.track_point_repository import TrackPointRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.vehicle_repository import VehicleRepository
 from app.services.auth_service import AuthService
+from app.services.calculations import CalculationParams
 from app.services.fuel_service import FuelService
+from app.services.shift_service import ShiftService
 from app.services.user_service import UserService
 from app.services.vehicle_service import VehicleService
 
@@ -53,6 +58,29 @@ def get_vehicle_service(db: DbSession) -> VehicleService:
     return VehicleService(VehicleRepository(db), FuelRepository(db))
 
 
+def get_calculation_params(settings: AppSettings) -> CalculationParams:
+    return CalculationParams(
+        max_accuracy_m=settings.gps_max_accuracy_m,
+        max_speed_kmh=settings.gps_max_speed_kmh,
+        stationary_threshold_m=settings.gps_stationary_threshold_m,
+        gap_threshold_s=settings.gps_gap_threshold_s,
+        idle_fuel_ml_per_s=settings.idle_fuel_ml_per_s,
+    )
+
+
+def get_shift_service(
+    db: DbSession, params: Annotated[CalculationParams, Depends(get_calculation_params)]
+) -> ShiftService:
+    return ShiftService(
+        shifts=ShiftRepository(db),
+        vehicles=VehicleRepository(db),
+        prices=FuelPriceRepository(db),
+        earnings=EarningRepository(db),
+        track_points=TrackPointRepository(db),
+        params=params,
+    )
+
+
 def get_current_user(
     repository: UserRepositoryDep,
     settings: AppSettings,
@@ -76,3 +104,4 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 FuelServiceDep = Annotated[FuelService, Depends(get_fuel_service)]
 VehicleServiceDep = Annotated[VehicleService, Depends(get_vehicle_service)]
+ShiftServiceDep = Annotated[ShiftService, Depends(get_shift_service)]

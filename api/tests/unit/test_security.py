@@ -45,6 +45,21 @@ def test_expired_token_is_rejected(settings: Settings) -> None:
         decode_access_token(token, settings)
 
 
+def test_token_issued_slightly_in_the_future_is_accepted(settings: Settings) -> None:
+    user_id = uuid.uuid4()
+    token = create_access_token(user_id, settings, now=datetime.now(UTC) + timedelta(seconds=5))
+
+    assert decode_access_token(token, settings) == user_id
+
+
+def test_token_issued_beyond_leeway_is_rejected(settings: Settings) -> None:
+    issued_at = datetime.now(UTC) + timedelta(seconds=settings.jwt_leeway_seconds + 60)
+    token = create_access_token(uuid.uuid4(), settings, now=issued_at)
+
+    with pytest.raises(InvalidTokenError):
+        decode_access_token(token, settings)
+
+
 def test_token_signed_with_other_secret_is_rejected(settings: Settings) -> None:
     other = settings.model_copy(update={"jwt_secret": "another-secret-with-at-least-32-chars"})
     token = create_access_token(uuid.uuid4(), other)

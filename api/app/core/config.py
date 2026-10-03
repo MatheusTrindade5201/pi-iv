@@ -1,3 +1,4 @@
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal, Self
 
@@ -19,6 +20,14 @@ class Settings(BaseSettings):
     jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 1440
+    jwt_leeway_seconds: int = 30
+
+    gps_max_accuracy_m: float = 50
+    gps_max_speed_kmh: float = 150
+    gps_stationary_threshold_m: float = 15
+    gps_gap_threshold_s: int = 120
+    idle_fuel_ml_per_s: Decimal = Decimal("0.04")
+    default_tz: str = "America/Sao_Paulo"
 
     @model_validator(mode="after")
     def require_jwt_secret_in_production(self) -> Self:

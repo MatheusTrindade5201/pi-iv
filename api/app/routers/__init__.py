@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, fuel_prices, fuels, health, users, vehicles
+from app.routers import auth, fuel_prices, fuels, health, shifts, users, vehicles
 
 ROUTERS = (
     health.router,
@@ -9,6 +9,7 @@ ROUTERS = (
     fuels.router,
     fuel_prices.router,
     vehicles.router,
+    shifts.router,
 )
 
 

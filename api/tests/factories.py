@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -90,3 +90,22 @@ def make_track_point(session: Session, shift: Shift, **overrides) -> TrackPoint:
     session.add(point)
     session.flush()
     return point
+
+
+def make_finished_shift(
+    session: Session, user: User, vehicle: Vehicle, started_at: datetime, **overrides
+) -> Shift:
+    data = {
+        "status": ShiftStatus.FINISHED,
+        "started_at": started_at,
+        "ended_at": started_at + timedelta(hours=4),
+        "distance_km": Decimal("78.200"),
+        "idle_minutes": 30,
+        "fuel_cost": Decimal("57.60"),
+        "earnings_total": Decimal("245.00"),
+        "profit": Decimal("187.40"),
+        "duration_minutes": 240,
+        "profit_per_hour": Decimal("46.85"),
+        "profit_per_km": Decimal("2.40"),
+    }
+    return make_shift(session, user, vehicle, **(data | overrides))
