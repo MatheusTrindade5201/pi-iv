@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.models import (
     GASOLINE_ID,
     Earning,
@@ -16,11 +17,11 @@ from app.models import (
 )
 
 
-def make_user(session: Session, **overrides) -> User:
+def make_user(session: Session, password: str | None = None, **overrides) -> User:
     data = {
         "name": "John Doe",
         "email": f"user-{uuid.uuid4().hex[:8]}@example.com",
-        "password_hash": "not-a-real-hash",
+        "password_hash": hash_password(password) if password else "not-a-real-hash",
     }
     user = User(**(data | overrides))
     session.add(user)

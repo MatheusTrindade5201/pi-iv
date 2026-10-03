@@ -69,6 +69,22 @@ O Postgres do projeto usa a porta **5433** no host para não conflitar com outro
 
 Health check: `curl localhost:8000/api/v1/health` → `{"status":"ok","database":"ok"}` (ou **503** se o banco estiver fora).
 
+### Autenticação
+
+As rotas protegidas usam JWT (`Authorization: Bearer <token>`). Defina `JWT_SECRET` no `api/.env`; em produção ele é obrigatório e precisa ter pelo menos 32 caracteres (gere com `openssl rand -hex 32`).
+
+```bash
+curl -X POST localhost:8000/api/v1/auth/register -H 'Content-Type: application/json' \
+  -d '{"name":"John Doe","email":"john@example.com","password":"senha-segura-123","password_confirm":"senha-segura-123"}'
+
+TOKEN=$(curl -s -X POST localhost:8000/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"john@example.com","password":"senha-segura-123"}' | jq -r .access_token)
+
+curl localhost:8000/api/v1/users/me -H "Authorization: Bearer $TOKEN"
+```
+
+No Swagger (`/docs`), use o botão **Authorize** e cole o token.
+
 Migrations (Alembic, dentro de `api/`):
 
 ```bash
