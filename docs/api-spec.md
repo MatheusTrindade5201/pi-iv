@@ -333,6 +333,25 @@ Para os avisos "GPS ativo – último ponto há 4s" e "GPS ficou inativo por 6 m
 ```
 → `200 { "access_token": "…", "token_type": "bearer" }`
 
+Token JWT HS256 com `sub` (id do usuário), `iat` e `exp` (padrão 24 h, `JWT_EXPIRES_MINUTES`).
+
+`PATCH /users/me`
+```json
+{ "name": "John Atualizado" }
+```
+→ `200` com o mesmo formato de `UserResponse`.
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| E-mail já cadastrado (comparação sem diferenciar maiúsculas) | 409 | `E-mail já cadastrado` |
+| Senhas diferentes, senha < 8 caracteres, e-mail inválido, nome vazio | 422 | erros de validação |
+| E-mail inexistente ou senha errada (mesma mensagem nos dois casos) | 401 | `E-mail ou senha inválidos` |
+| Token ausente, inválido, expirado ou de usuário inexistente | 401 | `Não autenticado` |
+
+Respostas 401 incluem o header `WWW-Authenticate: Bearer`.
+
 ### 5.3 Combustíveis e preços
 
 | Método | Rota | Descrição |
