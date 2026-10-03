@@ -179,7 +179,7 @@ Enum `shift_status`: `in_progress`, `finished`.
 - **Ganhos** e **pontos de GPS** só podem ser adicionados/alterados em expediente `in_progress` → senão **409**.
 - **"Sobrescrever ganho atual"**: o app edita o último ganho lançado via `PATCH /shifts/{id}/earnings/{earning_id}`.
 - **Encerrar**: grava `ended_at = agora`, calcula e persiste todas as métricas ([seção 4](#4-cálculos)) e muda o status para `finished`. Expediente encerrado é **imutável** (edições → **409**).
-- Pontos de GPS com `recorded_at` fora do intervalo `[started_at, agora + 1 min]` são rejeitados → **422**.
+- Pontos de GPS com `recorded_at` fora do intervalo `[started_at, agora + 1 min]` são descartados e contados em `rejected` — **o lote não falha**, para que um único ponto ruim não trave o buffer offline do app. Ganhos fora desse intervalo → **422**.
 
 ---
 
@@ -561,7 +561,7 @@ Erros:
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/shifts/{id}/track-points` | Envia lote de pontos → **202** com `{ "accepted": n, "duplicated": m }` |
+| POST | `/shifts/{id}/track-points` | Envia lote de pontos → **202** com `{ "accepted": n, "duplicated": m, "rejected": k }` |
 | GET | `/shifts/{id}/track-points` | Lista pontos (para desenhar trajeto) |
 
 `POST /shifts/{id}/track-points`
@@ -572,7 +572,29 @@ Erros:
   ]
 }
 ```
-- Lote de até 500 pontos. Pontos repetidos (mesmo `recorded_at`) são ignorados, permitindo que o app reenvie lotes após ficar offline.
+- Lote de 1 a 500 pontos. Pontos repetidos (mesmo `recorded_at`, já salvos ou repetidos no próprio lote) são ignorados e contados em `duplicated`, permitindo que o app reenvie lotes após ficar offline.
+- Pontos fora do intervalo do expediente são contados em `rejected` (ver §3).
+- `recorded_at` precisa ter fuso. `latitude`/`longitude` são arredondadas para 6 casas (≈ 11 cm); `accuracy_m` e `speed_ms` (opcionais, ≥ 0) para 2 casas.
+- A deduplicação é feita no banco (`INSERT … ON CONFLICT DO NOTHING` sobre `UNIQUE (shift_id, recorded_at)`), então é segura mesmo com envios simultâneos.
+
+→ `202`
+```json
+{ "accepted": 5, "duplicated": 0, "rejected": 1 }
+```
+
+`GET /shifts/{id}/track-points` → pontos em ordem de `recorded_at`, inclusive de expedientes encerrados:
+```json
+[ { "recorded_at": "…", "latitude": "-23.550520", "longitude": "-46.633308", "accuracy_m": "8.40", "speed_ms": "9.12" } ]
+```
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| Expediente inexistente ou de outro usuário | 404 | `Expediente não encontrado` |
+| Expediente encerrado (POST) | 409 | `Expediente já encerrado` |
+| Lote vazio ou > 500, coordenadas fora do intervalo, `recorded_at` sem fuso | 422 | erros de validação |
+| Sem token | 401 | `Não autenticado` |
 
 ### 5.8 Histórico e análise
 

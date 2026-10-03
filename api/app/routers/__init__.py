@@ -7,6 +7,7 @@ from app.routers import (
     fuels,
     health,
     shifts,
+    track_points,
     users,
     vehicles,
 )
@@ -20,6 +21,7 @@ ROUTERS = (
     vehicles.router,
     shifts.router,
     earnings.router,
+    track_points.router,
 )
 
 

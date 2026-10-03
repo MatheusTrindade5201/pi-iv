@@ -21,6 +21,7 @@ from app.services.calculations import CalculationParams
 from app.services.earning_service import EarningService
 from app.services.fuel_service import FuelService
 from app.services.shift_service import ShiftService
+from app.services.track_point_service import TrackPointService
 from app.services.user_service import UserService
 from app.services.vehicle_service import VehicleService
 
@@ -86,6 +87,10 @@ def get_earning_service(db: DbSession) -> EarningService:
     return EarningService(shifts=ShiftRepository(db), earnings=EarningRepository(db))
 
 
+def get_track_point_service(db: DbSession) -> TrackPointService:
+    return TrackPointService(shifts=ShiftRepository(db), track_points=TrackPointRepository(db))
+
+
 def get_current_user(
     repository: UserRepositoryDep,
     settings: AppSettings,
@@ -111,3 +116,4 @@ FuelServiceDep = Annotated[FuelService, Depends(get_fuel_service)]
 VehicleServiceDep = Annotated[VehicleService, Depends(get_vehicle_service)]
 ShiftServiceDep = Annotated[ShiftService, Depends(get_shift_service)]
 EarningServiceDep = Annotated[EarningService, Depends(get_earning_service)]
+TrackPointServiceDep = Annotated[TrackPointService, Depends(get_track_point_service)]

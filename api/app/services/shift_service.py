@@ -22,12 +22,11 @@ from app.services.calculations import (
     find_gps_gaps,
     summarize_shift,
 )
+from app.services.shift_access import get_open_shift, get_user_shift
 
 VEHICLE_NOT_FOUND = "Veículo não encontrado"
-SHIFT_NOT_FOUND = "Expediente não encontrado"
 NO_SHIFT_IN_PROGRESS = "Nenhum expediente em andamento"
 SHIFT_ALREADY_IN_PROGRESS = "Já existe um expediente em andamento"
-SHIFT_ALREADY_FINISHED = "Expediente já encerrado"
 FUEL_PRICE_MISSING = "Cadastre o preço do combustível antes de iniciar"
 FLEX_FUEL_REQUIRED = "Informe o combustível abastecido (Gasolina ou Etanol) para moto Flex"
 FUEL_MISMATCH = "Combustível diferente do cadastrado no veículo"
@@ -105,13 +104,10 @@ class ShiftService:
         return self._detail(shift)
 
     def get(self, user: User, shift_id: uuid.UUID) -> ShiftDetail:
-        return self._detail(self._get_shift(user, shift_id))
+        return self._detail(get_user_shift(self.shifts, user, shift_id))
 
     def finish(self, user: User, shift_id: uuid.UUID) -> ShiftDetail:
-        shift = self._get_shift(user, shift_id)
-        if shift.status == ShiftStatus.FINISHED:
-            raise ConflictError(SHIFT_ALREADY_FINISHED)
-
+        shift = get_open_shift(self.shifts, user, shift_id)
         ended_at = self.clock()
         points = self._points(shift)
         summary = self._summarize(shift, points, ended_at)
@@ -143,12 +139,6 @@ class ShiftService:
         end = _local_midnight(date_to + timedelta(days=1), zone) if date_to else None
         items, total = self.shifts.list_for_user(user.id, start, end, (page - 1) * size, size)
         return ShiftListResult(items=items, total=total)
-
-    def _get_shift(self, user: User, shift_id: uuid.UUID) -> Shift:
-        shift = self.shifts.get_for_user(shift_id, user.id)
-        if shift is None:
-            raise NotFoundError(SHIFT_NOT_FOUND)
-        return shift
 
     def _fuel_used(self, vehicle_fuel_id: uuid.UUID, requested: uuid.UUID | None) -> uuid.UUID:
         if vehicle_fuel_id == FLEX_ID:
