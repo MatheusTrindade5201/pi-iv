@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from app.core.config import Settings, get_settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
-from app.routers import auth, health, users
+from app.routers import register_routers
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -23,8 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.session_factory = create_session_factory(engine)
 
     register_error_handlers(app)
-    for router in (health.router, auth.router, users.router):
-        app.include_router(router, prefix=settings.api_prefix)
+    register_routers(app, settings.api_prefix)
 
     return app
 

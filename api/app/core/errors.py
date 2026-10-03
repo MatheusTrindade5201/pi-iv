@@ -19,6 +19,10 @@ class ConflictError(AppError):
     status_code = status.HTTP_409_CONFLICT
 
 
+class UnprocessableError(AppError):
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
 class UnauthorizedError(AppError):
     status_code = status.HTTP_401_UNAUTHORIZED
     headers = {"WWW-Authenticate": "Bearer"}

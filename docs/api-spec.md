@@ -366,6 +366,23 @@ Respostas 401 incluem o header `WWW-Authenticate: Bearer`.
 ```
 → `200 [ { "fuel_id": "…", "fuel_name": "Gasolina", "price_per_liter": "6.200", "valid_from": "…" }, … ]`
 
+- Todos os itens do mesmo `PUT` recebem o mesmo `valid_from` (agora). Preços anteriores ficam no histórico.
+- A resposta traz **todos** os preços vigentes do usuário, não só os enviados (ex.: atualizar só a Gasolina devolve também o Etanol vigente).
+- `price_per_liter`: maior que 0, até 3 casas decimais e menor que 1000.
+
+`GET /fuel-prices/current` → mesmo formato da resposta do `PUT`. Usuário sem preços cadastrados → `[]`; combustível sem preço não aparece na lista.
+
+`GET /fuels` → `[ { "id": "…", "name": "Gasolina" }, { "id": "…", "name": "Etanol" }, { "id": "…", "name": "Flex" } ]`
+
+Erros:
+
+| Situação | Código | `detail` |
+|---|---|---|
+| Preço para Flex | 422 | `Flex não tem preço próprio; informe Gasolina ou Etanol` |
+| `fuel_id` inexistente | 422 | `Combustível não encontrado` |
+| Lista vazia, `fuel_id` repetido, preço ≤ 0 ou fora do formato | 422 | erros de validação |
+| Sem token | 401 | `Não autenticado` |
+
 ### 5.4 Veículos
 
 | Método | Rota | Descrição |
