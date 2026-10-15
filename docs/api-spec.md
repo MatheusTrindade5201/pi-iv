@@ -701,18 +701,20 @@ Rápidos, sem banco e sem rede.
 
 Cada etapa é planejada e executada separadamente, com testes, e **commitada pelo usuário** ao final.
 
-| # | Etapa | Entregáveis |
-|---|---|---|
-| 1 | Scaffold | `uv init`, `pyproject.toml`, `.python-version`, ruff, `docker-compose.yml`, settings, `GET /health` + teste |
-| 2 | Banco | Modelos SQLAlchemy, Alembic, seed de `fuel`, infra de testes de integração (testcontainers) |
-| 3 | Auth e usuário | register, login, JWT, `/users/me` |
-| 4 | Combustíveis e preços | `/fuels`, `/fuel-prices` |
-| 5 | Veículos | CRUD de `/vehicles` |
-| 6 | Expedientes | módulo de cálculos, iniciar / atual / detalhe / encerrar / listar |
-| 7 | Ganhos | CRUD de ganhos do expediente |
-| 8 | Pontos de GPS | envio em lote, idempotência, status do GPS |
-| 9 | Histórico e análise | `/analytics/daily`, `/analytics/summary` |
-| 10 | Fechamento | revisão de cobertura, documentação OpenAPI, CI (GitHub Actions) |
+| # | Etapa | Entregáveis | Status |
+|---|---|---|---|
+| 1 | Scaffold | `uv init`, `pyproject.toml`, `.python-version`, ruff, `docker-compose.yml`, settings, `GET /health` + teste | ✅ |
+| 2 | Banco | Modelos SQLAlchemy, Alembic, seed de `fuel`, infra de testes de integração (testcontainers) | ✅ |
+| 3 | Auth e usuário | register, login, JWT, `/users/me` | ✅ |
+| 4 | Combustíveis e preços | `/fuels`, `/fuel-prices` | ✅ |
+| 5 | Veículos | CRUD de `/vehicles` | ✅ |
+| 6 | Expedientes | módulo de cálculos, iniciar / atual / detalhe / encerrar / listar | ✅ |
+| 7 | Ganhos | CRUD de ganhos do expediente | ✅ |
+| 8 | Pontos de GPS | envio em lote, idempotência, status do GPS | ✅ |
+| 9 | Histórico e análise | `/analytics/daily`, `/analytics/summary` | ✅ |
+| 10 | Fechamento | revisão de cobertura, documentação OpenAPI, CI (GitHub Actions) | ✅ |
+
+Resultado final: 322 testes (180 unitários, 142 de integração), 100% de cobertura de linhas e branches, OpenAPI com descrição e erros documentados em todas as rotas, CI com lint e testes contra PostgreSQL real.
 
 ---
 
@@ -723,3 +725,5 @@ Cada etapa é planejada e executada separadamente, com testes, e **commitada pel
 - **Valor de `IDLE_FUEL_ML_PER_S`** — padrão 0,04 mL/s; pode ser calibrado com dados reais ou variar por cilindrada.
 - **Tolerâncias do GPS** (precisão, velocidade máxima, δ, lacuna) — configuráveis; ajustar após testes de campo.
 - **Múltiplas motos** — a API suporta várias, mas a tela de Perfil mostra uma ("Minha moto").
+- **Arredondamento** — `profit_per_km` usa `ROUND_HALF_UP` (2,40) enquanto o protótipo mostra valor truncado (2,39); alinhar com o app.
+- **Deploy** — ainda não há `Dockerfile` da API nem ambiente de produção; o CI só valida (lint + testes).

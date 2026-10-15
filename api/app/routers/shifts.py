@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.core.deps import CurrentUser, ShiftServiceDep
+from app.core.openapi import errors
 from app.models import Shift, ShiftStatus
 from app.schemas.shift import (
     GpsGapResponse,
@@ -18,7 +19,7 @@ from app.schemas.shift import (
 )
 from app.services.shift_service import ShiftDetail, stored_summary
 
-router = APIRouter(prefix="/shifts", tags=["shifts"])
+router = APIRouter(prefix="/shifts", tags=["shifts"], responses=errors(401))
 
 
 def to_response(detail: ShiftDetail) -> ShiftResponse:
@@ -38,12 +39,18 @@ def to_list_item(shift: Shift) -> ShiftListItem:
     return ShiftListItem(**shift_fields(shift), summary=summary)
 
 
-@router.post("", response_model=ShiftResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ShiftResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Iniciar expediente",
+    responses=errors(404, 409, 422),
+)
 def start_shift(data: ShiftStart, user: CurrentUser, service: ShiftServiceDep) -> ShiftResponse:
     return to_response(service.start(user, data))
 
 
-@router.get("", response_model=ShiftPage)
+@router.get("", response_model=ShiftPage, summary="Listar expedientes")
 def list_shifts(
     query: Annotated[ShiftListQuery, Query()], user: CurrentUser, service: ShiftServiceDep
 ) -> ShiftPage:
@@ -58,16 +65,31 @@ def list_shifts(
     )
 
 
-@router.get("/current", response_model=ShiftResponse)
+@router.get(
+    "/current",
+    response_model=ShiftResponse,
+    summary="Expediente em andamento com lucro parcial",
+    responses=errors(404),
+)
 def current_shift(user: CurrentUser, service: ShiftServiceDep) -> ShiftResponse:
     return to_response(service.current(user))
 
 
-@router.get("/{shift_id}", response_model=ShiftResponse)
+@router.get(
+    "/{shift_id}",
+    response_model=ShiftResponse,
+    summary="Detalhar expediente",
+    responses=errors(404),
+)
 def get_shift(shift_id: uuid.UUID, user: CurrentUser, service: ShiftServiceDep) -> ShiftResponse:
     return to_response(service.get(user, shift_id))
 
 
-@router.post("/{shift_id}/finish", response_model=ShiftResponse)
+@router.post(
+    "/{shift_id}/finish",
+    response_model=ShiftResponse,
+    summary="Encerrar expediente",
+    responses=errors(404, 409),
+)
 def finish_shift(shift_id: uuid.UUID, user: CurrentUser, service: ShiftServiceDep) -> ShiftResponse:
     return to_response(service.finish(user, shift_id))

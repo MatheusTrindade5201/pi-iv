@@ -3,10 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.core.deps import AnalyticsServiceDep, CurrentUser
+from app.core.openapi import errors
 from app.repositories.analytics_repository import Totals
 from app.schemas.analytics import AnalyticsQuery, DailyTotalsResponse, PeriodSummaryResponse
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(prefix="/analytics", tags=["analytics"], responses=errors(401))
 
 
 def totals_fields(totals: Totals) -> dict:
@@ -21,7 +22,11 @@ def totals_fields(totals: Totals) -> dict:
     }
 
 
-@router.get("/daily", response_model=list[DailyTotalsResponse])
+@router.get(
+    "/daily",
+    response_model=list[DailyTotalsResponse],
+    summary="Lucro e totais por dia (tela Histórico)",
+)
 def daily(
     query: Annotated[AnalyticsQuery, Query()], user: CurrentUser, service: AnalyticsServiceDep
 ) -> list[DailyTotalsResponse]:
@@ -31,7 +36,9 @@ def daily(
     ]
 
 
-@router.get("/summary", response_model=PeriodSummaryResponse)
+@router.get(
+    "/summary", response_model=PeriodSummaryResponse, summary="Totais e indicadores do período"
+)
 def summary(
     query: Annotated[AnalyticsQuery, Query()], user: CurrentUser, service: AnalyticsServiceDep
 ) -> PeriodSummaryResponse:

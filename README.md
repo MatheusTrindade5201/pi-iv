@@ -2,9 +2,9 @@
 
 Aplicativo para motociclistas de entrega registrarem seus **expedientes de trabalho**: o app acompanha o trajeto por GPS, recebe os ganhos lançados durante o dia e calcula, em tempo real e no histórico, **quanto foi ganho, quanto foi gasto com combustível e qual o lucro** — por expediente, por dia ou por período.
 
-O projeto é composto por um app Android (Kotlin) e uma API. **Neste momento o escopo é apenas a API.**
+Este repositório contém a **API**. O app Android (Kotlin) fica no repositório irmão **[`pi-iv-app`](../pi-iv-app)** (`univesp/pi-iv-app`), que consome esta API; o planejamento dele está em `pi-iv-app/docs/app-plan.md`.
 
-📄 Especificação completa: [`docs/api-spec.md`](docs/api-spec.md)
+📄 Especificação da API: [`docs/api-spec.md`](docs/api-spec.md)
 
 ## Stack
 
@@ -20,30 +20,48 @@ O projeto é composto por um app Android (Kotlin) e uma API. **Neste momento o e
 | Testes | pytest, pytest-cov, testcontainers (Postgres real) |
 | Lint / formatação | ruff |
 
-## Estrutura prevista
+## Estrutura
 
 ```
 api/
   app/
     main.py
-    core/            # config, security, db
+    core/            # config, db, segurança (JWT), erros, dependências, OpenAPI
     models/          # modelos SQLAlchemy
-    schemas/         # schemas Pydantic
+    schemas/         # schemas Pydantic (entrada/saída)
     repositories/    # acesso a dados
-    services/        # regras de negócio e cálculos
-    routers/         # endpoints FastAPI
-  alembic/
+    services/        # regras de negócio; calculations.py = cálculos puros (§4 do spec)
+    routers/         # endpoints FastAPI (registrados em routers/__init__.py)
+  alembic/           # migrations
   tests/
-    unit/
-    integration/
+    unit/            # sem banco e sem rede
+    integration/     # PostgreSQL real via testcontainers
     conftest.py
+    factories.py
   pyproject.toml
   uv.lock
   .python-version
+.github/workflows/api.yml
 docker-compose.yml
 docs/
   api-spec.md
 ```
+
+## Endpoints
+
+Prefixo `/api/v1`. Documentação interativa em **`/docs`** (Swagger) e **`/redoc`** quando a API está rodando. Detalhes, regras e erros em [`docs/api-spec.md`](docs/api-spec.md#5-endpoints).
+
+| Grupo | Rotas |
+|---|---|
+| Saúde | `GET /health` |
+| Autenticação | `POST /auth/register`, `POST /auth/login` |
+| Usuário | `GET /users/me`, `PATCH /users/me` |
+| Combustíveis | `GET /fuels`, `GET /fuel-prices/current`, `PUT /fuel-prices` |
+| Veículos | `POST /vehicles`, `GET /vehicles`, `GET/PATCH/DELETE /vehicles/{id}` |
+| Expedientes | `POST /shifts`, `GET /shifts`, `GET /shifts/current`, `GET /shifts/{id}`, `POST /shifts/{id}/finish` |
+| Ganhos | `POST/GET /shifts/{id}/earnings`, `PATCH/DELETE /shifts/{id}/earnings/{earning_id}` |
+| GPS | `POST/GET /shifts/{id}/track-points` |
+| Análise | `GET /analytics/daily`, `GET /analytics/summary` |
 
 ## Setup
 
@@ -111,7 +129,9 @@ uv run pytest -m integration         # apenas integração
 
 Os testes de integração sobem um **PostgreSQL real** em container (testcontainers), aplicam as migrations uma vez por sessão e isolam cada teste numa transação desfeita ao final — **o Docker precisa estar rodando**. A cobertura é medida automaticamente em toda execução.
 
-Meta de cobertura: **≥ 90%**.
+Meta de cobertura: **≥ 90%** (o `pytest` falha abaixo disso). Cobertura atual: **100%** de linhas e branches.
+
+Além dos testes de comportamento, `tests/unit/test_openapi.py` garante que toda rota tem descrição no Swagger e que toda rota protegida exige o token e documenta o 401.
 
 ## Qualidade
 
@@ -120,7 +140,22 @@ uv run ruff check .
 uv run ruff format .
 ```
 
+## CI
+
+O workflow [`.github/workflows/api.yml`](.github/workflows/api.yml) roda a cada push na `main` e em pull requests que alterem `api/`:
+
+- **Lint:** `ruff check` e `ruff format --check`.
+- **Testes:** `uv sync --locked` (falha se o `uv.lock` estiver desatualizado), testes unitários e depois a suíte completa com PostgreSQL real (o runner do GitHub já tem Docker); o relatório `coverage.xml` fica como artefato da execução.
+
+Para rodar o mesmo localmente, dentro de `api/`:
+
+```bash
+uv sync --locked && uv run ruff check . && uv run ruff format --check . && uv run pytest
+```
+
 ## Roadmap
+
+Todas as etapas concluídas:
 
 1. Scaffold (uv, pyproject, ruff, docker-compose, config, `/health` + teste)
 2. Modelos + Alembic + seed de combustíveis + infra de testes de integração

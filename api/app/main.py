@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.core.config import Settings, get_settings
 from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import register_error_handlers
+from app.core.openapi import DESCRIPTION, TAGS
 from app.routers import register_routers
 
 
@@ -18,7 +19,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         engine.dispose()
 
-    app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title=settings.app_name,
+        version="1.0.0",
+        description=DESCRIPTION,
+        openapi_tags=TAGS,
+        lifespan=lifespan,
+    )
     app.state.settings = settings
     app.state.session_factory = create_session_factory(engine)
 

@@ -11,6 +11,7 @@ router = APIRouter(tags=["health"])
 @router.get(
     "/health",
     response_model=HealthResponse,
+    summary="Verificar API e banco",
     responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HealthResponse}},
 )
 def health(db: DbSession, response: Response) -> HealthResponse:
