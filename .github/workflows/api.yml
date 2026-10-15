@@ -90,7 +90,12 @@ jobs:
       - name: Migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
-        run: uv run alembic upgrade head
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Secret DATABASE_URL_MIGRATIONS ausente ou vazio"
+            exit 1
+          fi
+          uv run --no-dev alembic upgrade head
 
       # Da raiz do repositório: o projeto na Vercel tem Root Directory = api.
       - name: Deploy em produção
