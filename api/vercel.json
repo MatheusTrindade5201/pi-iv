@@ -1,0 +1,4 @@
+{
+  "regions": ["gru1"],
+  "git": { "deploymentEnabled": false }
+}

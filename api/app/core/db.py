@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 
 def create_db_engine(url: str) -> Engine:
-    return create_engine(url, pool_pre_ping=True)
+    # Sem prepared statements: o pooler do Supabase em modo transaction não os suporta.
+    return create_engine(url, pool_pre_ping=True, connect_args={"prepare_threshold": None})
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:

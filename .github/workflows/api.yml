@@ -14,7 +14,8 @@ on:
 
 concurrency:
   group: api-${{ github.ref }}
-  cancel-in-progress: true
+  # Na main não cancela: um push novo não pode interromper migration/deploy em andamento.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 defaults:
   run:
@@ -68,3 +69,34 @@ jobs:
           name: coverage
           path: api/coverage.xml
           if-no-files-found: ignore
+
+  deploy:
+    name: Migrations e deploy (Vercel)
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: api/uv.lock
+
+      - name: Instalar dependências
+        run: uv sync --locked --no-dev
+
+      # Session pooler do Supabase (porta 5432): o Actions só tem IPv4.
+      - name: Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
+        run: uv run alembic upgrade head
+
+      # Da raiz do repositório: o projeto na Vercel tem Root Directory = api.
+      - name: Deploy em produção
+        working-directory: .
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@61.1.0 deploy --prod --yes --token "$VERCEL_TOKEN"

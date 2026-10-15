@@ -31,6 +31,29 @@ def test_seed_creates_fuels_with_fixed_ids(db_session: Session) -> None:
     assert {fuel.id: fuel.name for fuel in fuels} == SEED_FUELS
 
 
+def test_all_tables_have_row_level_security(db_session: Session) -> None:
+    without_rls = db_session.scalars(
+        text(
+            "SELECT relname FROM pg_class "
+            "WHERE relnamespace = 'public'::regnamespace AND relkind = 'r' "
+            "AND NOT relrowsecurity"
+        )
+    ).all()
+
+    assert without_rls == []
+
+
+def test_role_that_does_not_own_tables_sees_no_rows(db_session: Session) -> None:
+    db_session.execute(text("CREATE ROLE rls_probe"))
+    db_session.execute(text("GRANT SELECT ON fuel TO rls_probe"))
+    db_session.execute(text("SET LOCAL ROLE rls_probe"))
+
+    assert db_session.scalar(text("SELECT count(*) FROM fuel")) == 0
+
+    db_session.execute(text("RESET ROLE"))
+    assert db_session.scalar(text("SELECT count(*) FROM fuel")) == len(SEED_FUELS)
+
+
 def test_models_and_migrations_are_in_sync(postgres_url: str) -> None:
     command.check(make_alembic_config(postgres_url))
 

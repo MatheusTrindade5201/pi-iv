@@ -15,6 +15,9 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 
+# Vercel (vercel link)
+.vercel/
+
 # IDE / SO
 .idea/
 .vscode/
