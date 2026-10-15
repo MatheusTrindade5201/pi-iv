@@ -24,6 +24,7 @@ class CalculationParams:
     stationary_threshold_m: float = 15
     gap_threshold_s: int = 120
     idle_fuel_ml_per_s: Decimal = Decimal("0.04")
+    reanchor_after_points: int = 3
 
 
 @dataclass(frozen=True)
@@ -65,12 +66,25 @@ def haversine_m(a: GpsPoint, b: GpsPoint) -> float:
 
 def filter_points(points: Iterable[GpsPoint], params: CalculationParams) -> list[GpsPoint]:
     valid: list[GpsPoint] = []
+    # Pontos seguidos descartados como salto, mas coerentes entre si. Se forem
+    # muitos, quem estava errado era a referência (ex.: primeiro ponto vindo do
+    # cache do GPS, longe da rota): ela sai e esses pontos entram.
+    rejected: list[GpsPoint] = []
     for point in sorted(points, key=lambda p: p.recorded_at):
         if point.accuracy_m is not None and point.accuracy_m > params.max_accuracy_m:
             continue
-        if valid and _speed_kmh(valid[-1], point) > params.max_speed_kmh:
+        if not valid or _speed_kmh(valid[-1], point) <= params.max_speed_kmh:
+            valid.append(point)
+            rejected = []
             continue
-        valid.append(point)
+        if rejected and _speed_kmh(rejected[-1], point) > params.max_speed_kmh:
+            rejected = []
+        rejected.append(point)
+        if len(rejected) >= params.reanchor_after_points:
+            while valid and _speed_kmh(valid[-1], rejected[0]) > params.max_speed_kmh:
+                valid.pop()
+            valid.extend(rejected)
+            rejected = []
     return valid
 
 
@@ -136,7 +150,8 @@ def summarize_shift(
 
 
 def per_hour(value: Decimal, minutes: int) -> Decimal | None:
-    return _money(value * 60 / minutes) if minutes else None
+    # Divide por no mínimo 1 hora: abaixo disso mostra o valor feito, sem projetar.
+    return _money(value * 60 / max(minutes, 60)) if minutes else None
 
 
 def per_km(value: Decimal, distance_km: Decimal) -> Decimal | None:

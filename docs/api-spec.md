@@ -256,7 +256,8 @@ fuel_cost = (liters_moving + liters_idle) × price_per_liter_used
 earnings_total   = Σ earnings.amount
 profit           = earnings_total − fuel_cost
 duration_minutes = (ended_at ou agora) − started_at, em minutos inteiros (truncado)
-profit_per_hour  = profit / (duration_minutes / 60)    → null se duration_minutes = 0
+profit_per_hour  = profit / max(duration_minutes / 60, 1) → null se duration_minutes = 0
+                   (abaixo de 1 hora mostra o lucro feito, sem projetar)
 profit_per_km    = profit / distance_km                 → null se distance_km = 0
 ```
 
@@ -652,7 +653,7 @@ Parâmetros (iguais nas duas rotas):
 
 - `from`/`to` na resposta trazem o período efetivamente usado (útil quando foram omitidos).
 - `days_worked` conta dias locais distintos; dois expedientes no mesmo dia contam 1.
-- `profit_per_hour = profit / (duration_minutes / 60)`, `profit_per_km = profit / distance_km` e `avg_profit_per_day = profit / days_worked` são calculados a partir dos **totais** (não média das médias), com `ROUND_HALF_UP`; `null` quando o divisor é 0.
+- `profit_per_hour = profit / max(duration_minutes / 60, 1)`, `profit_per_km = profit / distance_km` e `avg_profit_per_day = profit / days_worked` são calculados a partir dos **totais** (não média das médias), com `ROUND_HALF_UP`; `null` quando o divisor é 0.
 - Período sem expedientes → `daily = []` e `summary` com totais zerados e taxas `null`.
 
 Erros:

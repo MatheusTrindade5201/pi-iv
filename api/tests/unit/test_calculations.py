@@ -77,6 +77,28 @@ def test_filter_points_discards_impossible_jump() -> None:
     assert filter_points([start, jump, back], PARAMS) == [start, back]
 
 
+def test_filter_points_discards_short_run_of_jumps() -> None:
+    start = point(0)
+    jumps = [point(60, east_m=10_000), point(65, east_m=10_050)]
+    back = point(120, east_m=100)
+
+    assert filter_points([start, *jumps, back], PARAMS) == [start, back]
+
+
+def test_filter_points_drops_stale_first_fix() -> None:
+    stale = GpsPoint(T0, 37.421998, -122.084)
+    route = [point(5 * i, east_m=90 * i) for i in range(1, 6)]
+
+    assert filter_points([stale, *route], PARAMS) == route
+
+
+def test_stale_first_fix_does_not_zero_the_distance() -> None:
+    stale = GpsPoint(T0, 37.421998, -122.084)
+    route = [point(5 * i, east_m=90 * i) for i in range(1, 6)]
+
+    assert summarize_track([stale, *route], PARAMS).distance_m == pytest.approx(360, abs=0.01)
+
+
 @pytest.mark.parametrize(("east_m", "distance_m", "idle_seconds"), [(14.9, 0, 30), (15.1, 15.1, 0)])
 def test_stationary_threshold(east_m: float, distance_m: float, idle_seconds: float) -> None:
     track = summarize_track([point(0), point(30, east_m)], PARAMS)
@@ -171,6 +193,9 @@ def test_filter_points_discards_point_with_same_timestamp() -> None:
         (Decimal("187.40"), 240, Decimal("46.85")),
         (Decimal("0.25"), 120, Decimal("0.13")),
         (Decimal("-10.00"), 60, Decimal("-10.00")),
+        (Decimal("27.60"), 2, Decimal("27.60")),
+        (Decimal("30.00"), 59, Decimal("30.00")),
+        (Decimal("30.00"), 90, Decimal("20.00")),
         (Decimal("10.00"), 0, None),
     ],
 )
